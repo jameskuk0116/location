@@ -32,8 +32,7 @@
     
     self.motionManager = [[CMMotionManager alloc]init];
     
-    UIImageView *imageView = [[UIImageView alloc]initWithFrame:CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, [UIScreen mainScreen].bounds.size.height)];
-    [self.view addSubview:imageView];
+    NSOperationQueue *queqe = [[NSOperationQueue alloc]init];
     
     ViewController * __weak weakSelf = self;
     __block double xPoint = 0.0000;
@@ -44,7 +43,7 @@
     [arr addObject:locPoint];
     if (self.motionManager.deviceMotionAvailable) {
         self.motionManager.deviceMotionUpdateInterval = K_UpdateInterval;
-        [self.motionManager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXTrueNorthZVertical toQueue:[NSOperationQueue mainQueue] withHandler:^(CMDeviceMotion *motion, NSError *error) {
+        [self.motionManager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXTrueNorthZVertical toQueue:queqe withHandler:^(CMDeviceMotion *motion, NSError *error) {
 //            NSLog(@"\nroll--->%f\npitch--->%f\nyaw--->%f",motion.attitude.roll,motion.attitude.pitch,motion.attitude.yaw);
             if (!referenceAttitude) {
                 referenceAttitude = motion.attitude;
@@ -60,28 +59,31 @@
                 double y = motion.userAcceleration.y *rotation.m12 +motion.userAcceleration.y *rotation.m22+motion.userAcceleration.y *rotation.m32;
                 NSLog(@"x_%f___y_%f",x,y);
 //                NSLog(@"####%f_____%f",motion.userAcceleration.x,motion.userAcceleration.y);
-                xPoint = xPoint + (weakSelf.xV*K_UpdateInterval) +((sqrt(x*x))*K_UpdateInterval*K_UpdateInterval)/2;
-                yPoint = yPoint + (weakSelf.yV*K_UpdateInterval) +((sqrt(y*y))*K_UpdateInterval*K_UpdateInterval)/2;
-                weakSelf.xV = x*K_UpdateInterval +weakSelf.xV;
-                weakSelf.yV = y*K_UpdateInterval +weakSelf.yV;
-                pointCount++;
-                NSString *nowPoint = [NSString stringWithFormat:@"%f,%f",xPoint,yPoint];
-                [arr addObject:nowPoint];
 
-                double dis = sqrt(xPoint*xPoint + yPoint*yPoint);
-                weakSelf.lbl.text = [NSString stringWithFormat:@"dis:%f",dis];
-                
-                for (int index = 0; index < arr.count; index++) {
-                    if (index == 0) {
-                        continue ;
-                    }
-                    NSArray *endPoint = [arr[index] componentsSeparatedByString:@","];
-                    NSArray *startPoint = [arr[index - 1] componentsSeparatedByString:@","];
-                    //下一点
-                    CGPoint lineEndPoint = CGPointMake([endPoint[0] doubleValue]*100+[UIScreen mainScreen].bounds.size.width/2, [endPoint[1] doubleValue]*100+[UIScreen mainScreen].bounds.size.height/2);
+                [[NSOperationQueue mainQueue]addOperationWithBlock:^{
+                    xPoint = xPoint + (weakSelf.xV*K_UpdateInterval) +((sqrt(x*x))*K_UpdateInterval*K_UpdateInterval)/2;
+                    yPoint = yPoint + (weakSelf.yV*K_UpdateInterval) +((sqrt(y*y))*K_UpdateInterval*K_UpdateInterval)/2;
+                    weakSelf.xV = x*K_UpdateInterval +weakSelf.xV;
+                    weakSelf.yV = y*K_UpdateInterval +weakSelf.yV;
+                    pointCount++;
+                    NSString *nowPoint = [NSString stringWithFormat:@"%f,%f",xPoint,yPoint];
+                    [arr addObject:nowPoint];
+                    
+                    double dis = sqrt(xPoint*xPoint + yPoint*yPoint);
+                    weakSelf.lbl.text = [NSString stringWithFormat:@"dis:%f",dis];
+                }];
+//                for (int index = 0; index < arr.count; index++) {
+//                    if (index == 0) {
+//                        continue ;
+//                    }
+//                    NSArray *endPoint = [arr[index] componentsSeparatedByString:@","];
+//                    NSArray *startPoint = [arr[index - 1] componentsSeparatedByString:@","];
+//                    //下一点
+//                    CGPoint lineEndPoint = CGPointMake([endPoint[0] doubleValue]*100+[UIScreen mainScreen].bounds.size.width/2, [endPoint[1] doubleValue]*100+[UIScreen mainScreen].bounds.size.height/2);
 //                    CGPoint lineStartPoint = CGPointMake([startPoint[0] doubleValue]*100+[UIScreen mainScreen].bounds.size.width/2, [startPoint[1] doubleValue]*100+[UIScreen mainScreen].bounds.size.height/2);
                     
-                }
+
+//                }
             }
         }];
     }
